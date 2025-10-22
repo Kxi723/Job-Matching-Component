@@ -9,9 +9,11 @@ using namespace std;
 struct resumeNode {
     int resumeID;
     string skills;
+    int* keywordID;
+    int keywordCount;
     resumeNode* nextAddress;
 
-    resumeNode(int id, const string& data) : resumeID(id), skills(data), nextAddress(nullptr) {}
+    resumeNode(int id, const string& data, int* skillIDs, int count) : resumeID(id), skills(data), keywordID(skillIDs), keywordCount(count), nextAddress(nullptr) {}
 };
 
 class resumeLinkedList {
@@ -44,8 +46,8 @@ class resumeLinkedList {
             }
         }
 
-        void insertAtEnd(int id, const string& data) {
-            resumeNode* newNode = new resumeNode(id, data);
+        void insertAtEnd(int id, const string& data, int* skillIDs, int count) {
+            resumeNode* newNode = new resumeNode(id, data, skillIDs, count);
             
             if (head == NULL) {
                 head = newNode;
@@ -86,6 +88,9 @@ class resumeLinkedList {
                 
                 // String usage
                 totalMemory += current->skills.capacity();
+
+                // Memory for the dynamic array
+                totalMemory += sizeof(int) * current->keywordCount;
                 
                 current = current->nextAddress;
             }
@@ -102,28 +107,26 @@ class resumeLinkedList {
             while (current != nullptr) {
                 resumeNode* temp = current;
                 current = current->nextAddress;
+
+                // Free dynamic array
+                delete[] temp->keywordID; 
                 delete temp;
             }
             head = nullptr;
         }
 
         ~resumeLinkedList() {
-            resumeNode* current = head;
-
-            while (current != nullptr) {
-                resumeNode* next = current->nextAddress;
-                delete current;
-                current = next;
-            }
+            clear();
         }
 };
 
 struct weightNode {
     string keywords;
     int weightScore;
+    int index;
     weightNode* nextAddress;
 
-    weightNode(const string& keyword, int keywordScore) : keywords(keyword), weightScore(keywordScore), nextAddress(nullptr) {}
+    weightNode(const string& keyword, int keywordScore, int index) : keywords(keyword), weightScore(keywordScore), index(index), nextAddress(nullptr) {}
 };
 
 class keywordLinkedList {
@@ -172,8 +175,8 @@ class keywordLinkedList {
             }
         }
 
-        void insertAtEnd(const string& keyword, int keywordScore) {
-            weightNode* newNode = new weightNode(keyword, keywordScore);
+        void insertAtEnd(const string& keyword, int keywordScore, int index) {
+            weightNode* newNode = new weightNode(keyword, keywordScore, index);
             
             if (head == NULL) {
                 head = newNode;
@@ -193,16 +196,16 @@ class keywordLinkedList {
         }
         
         // Check exist in list not
-        bool found(const string& keywordReaded) {
+        weightNode* find(const string& keywordReaded) {
             weightNode* current = head;
 
             while (current != nullptr) {
                 if (current->keywords == keywordReaded) {
-                    return true;
+                    return current;
                 }
                 current = current->nextAddress;
             }
-            return false;
+            return nullptr;
         }
 
         size_t getTotalMemoryUsage() const {
@@ -239,9 +242,12 @@ struct jobNode {
     int jobID;
     string position;
     string requirements;
+    int* keywordID;
+    int keywordCount;
+    int totalWeightScore;
     jobNode* nextAddress;
 
-    jobNode(int id, const string& position, const string& data) : jobID(id), position(position), requirements(data), nextAddress(nullptr) {}
+    jobNode(int id, const string& pos, const string& data, int* requirementID, int count, int score) : jobID(id), position(pos), requirements(data), keywordID(requirementID), keywordCount(count), totalWeightScore(score), nextAddress(nullptr) {}
 };
 
 class jobLinkedList {
@@ -264,8 +270,8 @@ class jobLinkedList {
             return count;
         }
 
-        void insertAtEnd(int id, const string& position, const string& data) {
-            jobNode* newNode = new jobNode(id, position, data);
+        void insertAtEnd(int id, const string& position, const string& data, int* requirementID, int count, int score) {
+            jobNode* newNode = new jobNode(id, position, data, requirementID, count, score);
             
             if (head == NULL) {
                 head = newNode;
@@ -307,7 +313,9 @@ class jobLinkedList {
                 // String usage
                 totalMemory += current->position.capacity();
                 totalMemory += current->requirements.capacity();
-                
+                // Dynamic array usage
+                totalMemory += sizeof(int) * current->keywordCount; 
+            
                 current = current->nextAddress;
             }
 
@@ -322,13 +330,14 @@ class jobLinkedList {
 
             while (current != nullptr) {
                 jobNode* next = current->nextAddress;
+                // Free dynamic array
+                delete[] current->keywordID;
                 delete current;
                 current = next;
             }
         }
 };
 
-// ========== REWRITTEN: New structure for match results ==========
 struct MatchNode {
     int jobID;
     float weightScoreObtained;
@@ -338,7 +347,6 @@ struct MatchNode {
     MatchNode(int id, float matched, string data) : jobID(id), weightScoreObtained(matched), data(data), nextAddress(nullptr) {}
 };
 
-// ========== MatchResult LinkedList Class ==========
 class MatchResultLinkedList {
 private:
     MatchNode* head;
@@ -395,27 +403,6 @@ public:
         return slow; //get middle point
     }
     
-    // Keep split and merge
-    MatchNode* mergeSort(MatchNode* head, bool descending) {
-        // If split til only 1 or end
-        if (head == nullptr || head->nextAddress == nullptr) {
-            return head;
-        }
-        
-        // Split the list into two halves
-        MatchNode* mid = getMiddle(head);
-        MatchNode* midNext = mid->nextAddress;
-        
-        mid->nextAddress = nullptr;
-        
-        // Recursively sort both halves
-        MatchNode* left = mergeSort(head, descending);
-        MatchNode* right = mergeSort(midNext, descending);
-        
-        // Merge the sorted halves
-        return merge(left, right, descending);
-    }
-    
     // Merge two sorted LinkedLists
      MatchNode* merge(MatchNode* l1, MatchNode* l2, bool descending) {
         if (l1 == nullptr)
@@ -449,6 +436,27 @@ public:
         }
         
         return result;
+    }
+    
+    // Keep split and merge
+    MatchNode* mergeSort(MatchNode* head, bool descending) {
+        // If split til only 1 or end
+        if (head == nullptr || head->nextAddress == nullptr) {
+            return head;
+        }
+        
+        // Split the list into two halves
+        MatchNode* mid = getMiddle(head);
+        MatchNode* midNext = mid->nextAddress;
+        
+        mid->nextAddress = nullptr;
+        
+        // Recursively sort both halves
+        MatchNode* left = mergeSort(head, descending);
+        MatchNode* right = mergeSort(midNext, descending);
+        
+        // Merge the sorted halves
+        return merge(left, right, descending);
     }
     
     // Sort the LinkedList

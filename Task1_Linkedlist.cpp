@@ -9,6 +9,9 @@
 using namespace std;
 using namespace std::chrono;
 
+// Define maximum number of keywords
+const int MAX_KEYWORDS = 50;
+
 bool fileLoaded(const string& fileName) {
     // Read file
     ifstream file(fileName);
@@ -48,7 +51,7 @@ void updateKeywordFile(keywordLinkedList& keywords, const string& filename) {
     csvFile.close();
 }
 
-void loadKeywordsFromFile(keywordLinkedList& keywordsList, const string& filename) {
+void loadKeywordsFromFile(keywordLinkedList& keywordsList, const string& filename, int& numberOfKeywords) {
     // Read file
     ifstream file(filename);
     
@@ -56,35 +59,35 @@ void loadKeywordsFromFile(keywordLinkedList& keywordsList, const string& filenam
         cout << "<ERROR> Keywords file not found. Using default keywords..." << endl;
         
         // Default keywords if file not exist
-        keywordsList.insertAtEnd("SQL", 3);
-        keywordsList.insertAtEnd("Excel", 2);
-        keywordsList.insertAtEnd("Power BI", 2);
-        keywordsList.insertAtEnd("Reporting", 1);
-        keywordsList.insertAtEnd("Data Cleaning", 3);
-        keywordsList.insertAtEnd("Tableau", 2);
-        keywordsList.insertAtEnd("Statistics", 3);
-        keywordsList.insertAtEnd("Pandas", 2);
-        keywordsList.insertAtEnd("Machine Learning", 3);
-        keywordsList.insertAtEnd("NLP", 3);
-        keywordsList.insertAtEnd("Deep Learning", 3);
-        keywordsList.insertAtEnd("Python", 3);
-        keywordsList.insertAtEnd("System Design", 3);
-        keywordsList.insertAtEnd("Agile", 1);
-        keywordsList.insertAtEnd("Git", 2);
-        keywordsList.insertAtEnd("Docker", 2);
-        keywordsList.insertAtEnd("Java", 3);
-        keywordsList.insertAtEnd("Computer Vision", 3);
-        keywordsList.insertAtEnd("Keras", 2);
-        keywordsList.insertAtEnd("MLOps", 3);
-        keywordsList.insertAtEnd("TensorFlow", 2);
-        keywordsList.insertAtEnd("REST APIs", 2);
-        keywordsList.insertAtEnd("Spring Boot", 2);
-        keywordsList.insertAtEnd("Stakeholder Management", 1);
-        keywordsList.insertAtEnd("User Stories", 1);
-        keywordsList.insertAtEnd("Product Roadmap", 1);
-        keywordsList.insertAtEnd("PyTorch", 2);
-        keywordsList.insertAtEnd("Cloud", 2);
-        keywordsList.insertAtEnd("Scrum", 1);
+        keywordsList.insertAtEnd("SQL", 3, numberOfKeywords++);
+        keywordsList.insertAtEnd("Excel", 2, numberOfKeywords++);
+        keywordsList.insertAtEnd("Power BI", 2, numberOfKeywords++);
+        keywordsList.insertAtEnd("Reporting", 1, numberOfKeywords++);
+        keywordsList.insertAtEnd("Data Cleaning", 3, numberOfKeywords++);
+        keywordsList.insertAtEnd("Tableau", 2, numberOfKeywords++);
+        keywordsList.insertAtEnd("Statistics", 3, numberOfKeywords++);
+        keywordsList.insertAtEnd("Pandas", 2, numberOfKeywords++);
+        keywordsList.insertAtEnd("Machine Learning", 3, numberOfKeywords++);
+        keywordsList.insertAtEnd("NLP", 3, numberOfKeywords++);
+        keywordsList.insertAtEnd("Deep Learning", 3, numberOfKeywords++);
+        keywordsList.insertAtEnd("Python", 3, numberOfKeywords++);
+        keywordsList.insertAtEnd("System Design", 3, numberOfKeywords++);
+        keywordsList.insertAtEnd("Agile", 1, numberOfKeywords++);
+        keywordsList.insertAtEnd("Git", 2, numberOfKeywords++);
+        keywordsList.insertAtEnd("Docker", 2, numberOfKeywords++);
+        keywordsList.insertAtEnd("Java", 3, numberOfKeywords++);
+        keywordsList.insertAtEnd("Computer Vision", 3, numberOfKeywords++);
+        keywordsList.insertAtEnd("Keras", 2, numberOfKeywords++);
+        keywordsList.insertAtEnd("MLOps", 3, numberOfKeywords++);
+        keywordsList.insertAtEnd("TensorFlow", 2, numberOfKeywords++);
+        keywordsList.insertAtEnd("REST APIs", 2, numberOfKeywords++);
+        keywordsList.insertAtEnd("Spring Boot", 2, numberOfKeywords++);
+        keywordsList.insertAtEnd("Stakeholder Management", 1, numberOfKeywords++);
+        keywordsList.insertAtEnd("User Stories", 1, numberOfKeywords++);
+        keywordsList.insertAtEnd("Product Roadmap", 1, numberOfKeywords++);
+        keywordsList.insertAtEnd("PyTorch", 2, numberOfKeywords++);
+        keywordsList.insertAtEnd("Cloud", 2, numberOfKeywords++);
+        keywordsList.insertAtEnd("Scrum", 1, numberOfKeywords++);
         
         // Save default keywords into file
         updateKeywordFile(keywordsList, filename);
@@ -98,81 +101,25 @@ void loadKeywordsFromFile(keywordLinkedList& keywordsList, const string& filenam
 
     // Load keywords 
     while (getline(file, line)) {
-        // Trim whitespace
-        size_t start = line.find_first_not_of("");
-        size_t comma = line.find_last_of(",");
-        
-        if (start != string::npos && comma != string::npos) {
-            // Cut keyword
-            string keywordReaded = line.substr(start, comma - start);
-            // Cut score
-            string weightScoreReaded = line.substr(comma + 2, 1);
+        stringstream ss(line);
+        string keywordReaded, weightScoreReaded;
 
-            stringstream ss(weightScoreReaded);
-            int intWeightScore; 
-            ss >> intWeightScore;
-
+        if (getline(ss, keywordReaded, ',') && getline(ss, weightScoreReaded)) {
             // Ensure non-repeated & non-empty keyword
-            if (!keywordReaded.empty() && !keywordsList.found(keywordReaded)) {
-                keywordsList.insertAtEnd(keywordReaded, intWeightScore);
+            if (numberOfKeywords < MAX_KEYWORDS && !keywordReaded.empty() && keywordsList.find(keywordReaded) == nullptr) {
+                // To be safe, convert string to int
+                int score = 0;
+
+                stringstream score_ss(weightScoreReaded);
+                score_ss >> score;
+
+                keywordsList.insertAtEnd(keywordReaded, score, numberOfKeywords++);
             }
         }
     }
     
     cout << "Loaded " << header << ".csv file with " << keywordsList.getSize() << " keywords." << endl;
     file.close();
-}
-
-void addNewKeyword(keywordLinkedList& keywordsList, const string& filename) {
-    string newKeyword;
-    int category = 0;
-
-    cout << endl << "Please enter the keyword you wish to add: ";
-    cin.ignore();
-    getline(cin, newKeyword);
-    
-    size_t start = newKeyword.find_first_not_of(" \n");
-    size_t end = newKeyword.find_last_not_of(" \n");
-    
-    if (start != string::npos && end != string::npos) {
-        newKeyword = newKeyword.substr(start, end - start + 1);
-    }
-    
-    if (newKeyword.empty()) {
-        cout << "<WARNING> Invalid keyword!" << endl;
-        return;
-    }
-    
-    if (keywordsList.found(newKeyword)) {
-        cout << "<WARNING> Keyword already exists!" << endl;
-        return;
-    }
-
-    // Pick weight score for it
-    cout << "Choose it's category." << endl 
-    << "<1> Hard Skills" << endl 
-    << "<2> Soft Skills" << endl 
-    << "<3> Tools" << endl 
-    << "Please enter number: ";
-    cin >> category;
-
-    switch(category) {
-        case 1:
-            keywordsList.insertAtEnd(newKeyword, 3);
-            break;
-        case 2:
-            keywordsList.insertAtEnd(newKeyword, 2);
-            break;
-        case 3:
-            keywordsList.insertAtEnd(newKeyword, 1);
-            break;
-        default:
-            cout << "Invalid number";
-            return;
-    }
-
-    updateKeywordFile(keywordsList, filename);
-    cout << "Keyword \"" << newKeyword << "\" added successfully!" << endl;
 }
 
 void filterResumeData(const string& resumeFile, resumeLinkedList& resumeList, keywordLinkedList& keywordList, resumeLinkedList& wrongResumeList) {
@@ -202,8 +149,12 @@ void filterResumeData(const string& resumeFile, resumeLinkedList& resumeList, ke
             }
         }
 
-        stringstream ss(line), buffer;
+        stringstream ss(line);
         string skill, skillsMatched;
+
+        // Temporary array to store found keyword IDs
+        int tempArr[MAX_KEYWORDS];
+        int idCount = 0;
         
         // Split skills by commas in first filtered line
         while (getline(ss, skill, ',')) {
@@ -215,23 +166,33 @@ void filterResumeData(const string& resumeFile, resumeLinkedList& resumeList, ke
             if (start != string::npos && end != string::npos) {
                 skill = skill.substr(start, end - start + 1); // +1 include itself index
                 
-                // Keep matched keywords
-                if (keywordList.found(skill)) {
-                    // If has skill added, then add comma
+                weightNode* foundKeyword = keywordList.find(skill);
+                
+                // Save matched keyword ID & skills
+                if (foundKeyword && idCount < MAX_KEYWORDS) {
+                    // If not first skill found, add comma
                     if (!skillsMatched.empty()) {
                         skillsMatched += ", ";
                     }
+
                     skillsMatched += skill;
+                    tempArr[idCount++] = foundKeyword->index;
                 }
             }
         }
         
         // Save filtered resume into linkedlist
         if (!skillsMatched.empty()) {
-            resumeList.insertAtEnd(resumeID, skillsMatched);
+            // Create a dynamic array of the exact size
+            int* idArr = new int[idCount];
+
+            for(int i = 0; i < idCount; ++i) {
+                idArr[i] = tempArr[i];
+            }
+            resumeList.insertAtEnd(resumeID, skillsMatched, idArr, idCount);
         }
         else { // Save excluded resume into another linkedlist
-            wrongResumeList.insertAtEnd(resumeID, originalLine);
+            wrongResumeList.insertAtEnd(resumeID, originalLine, nullptr, 0);
         }
         // Keep generate new ID
         resumeID++;
@@ -240,7 +201,7 @@ void filterResumeData(const string& resumeFile, resumeLinkedList& resumeList, ke
     fileStream.close();
 }
 
-void filterJobData(const string& jobFile, jobLinkedList& jobList) {
+void filterJobData(const string& jobFile, jobLinkedList& jobList, keywordLinkedList& keywordList) {
     // Read file
     ifstream fileStream(jobFile);
     string line, position, requirements;
@@ -264,7 +225,7 @@ void filterJobData(const string& jobFile, jobLinkedList& jobList) {
         requirements = line.substr(inIndex + 14, (line.size() - inIndex));
         
         // Filter punctuation marks but retain commas and spaces
-        for (char &c : line) {
+        for (char &c : requirements) {
             if (ispunct(c) && c != ',') {
                 c = ' ';
             }
@@ -276,77 +237,73 @@ void filterJobData(const string& jobFile, jobLinkedList& jobList) {
             }
         }
 
-        jobList.insertAtEnd(jobID, position, requirements);
+        stringstream ss(requirements);
+        string skill, validRequirements;
+
+        // Temporary array to store found keyword IDs
+        int tempArr[MAX_KEYWORDS];
+        int idCount = 0, totalScore = 0;
+        
+        // Split skills by commas in first filtered line
+        while (getline(ss, skill, ',')) {
+            // Trim leading & trailing spaces
+            size_t start = skill.find_first_not_of(" ");
+            size_t end = skill.find_last_not_of(" ");
+            
+            // If they arent end of the line
+            if (start != string::npos && end != string::npos) {
+                skill = skill.substr(start, end - start + 1); // +1 include itself index
+                
+                weightNode* foundKeyword = keywordList.find(skill);
+
+                // Save matched keyword ID & keyword & total score  
+                if (foundKeyword && idCount < MAX_KEYWORDS) {
+                    // If not first requirement found, add comma
+                    if (!validRequirements.empty()) {
+                        validRequirements += ", ";
+                    }
+                    validRequirements += skill;
+
+                    tempArr[idCount++] = foundKeyword->index;
+                    totalScore += foundKeyword->weightScore;
+                }
+            }
+        }
+
+        if(!validRequirements.empty()) {
+            // Create a dynamic array of the exact size
+            int* idArr = new int[idCount];
+
+            for(int i = 0; i < idCount; ++i) {
+                idArr[i] = tempArr[i];
+            }
+
+            jobList.insertAtEnd(jobID, position, validRequirements, idArr, idCount, totalScore);
+        }
+        
         jobID++;
     }
     
     fileStream.close();
 }
 
-int calcWeightScore(const string& jobRequirement, keywordLinkedList& keywordList) {
-    stringstream ss(jobRequirement);
-    string skill, keyword;
-    int totalWeightScore = 0;
+int calcMatchScore(const int* resumeSkillID, int resumeSkillCount, const int* jobRequirementID, int jobRequirementCount, const int keywordScores[]) {
+    int score = 0;
 
-    while (getline(ss, skill, ',')) {
-        size_t start = skill.find_first_not_of(" ");
-        size_t end = skill.find_last_not_of(" ");
-        
-        if (start != string::npos && end != string::npos) {
-            skill = skill.substr(start, end - start + 1);
+    // Loop every skill
+    for (int i = 0; i < resumeSkillCount; ++i) {
 
-            // Reset for every skill
-            weightNode* keywordsPtr = keywordList.getHead();
-            int weightScore = 0;
-            
-            // Looping keyword list to find weight score
-            while (keywordsPtr) {
-                keyword = keywordsPtr->keywords;
-                weightScore = keywordsPtr->weightScore;
+        // Loop every job requirement
+        for (int j = 0; j < jobRequirementCount; ++j) {
 
-                // Sum while found
-                if (skill == keyword) {
-                    totalWeightScore += weightScore;
-                }
-
-                keywordsPtr = keywordsPtr->nextAddress;
+            // If found, calculate matched skills score, and move next
+            if (resumeSkillID[i] == jobRequirementID[j]) {
+                score += keywordScores[resumeSkillID[i]];
+                break;
             }
         }
     }
-    return totalWeightScore;
-}
-
-int skillMatching(const string& resumeSkill, const string& jobRequirement, keywordLinkedList& keywordList) {
-    stringstream ss(resumeSkill);
-    string skill, keyword;
-    int matchScore = 0;
-
-    while (getline(ss, skill, ',')) {
-        size_t start = skill.find_first_not_of(" ");
-        size_t end = skill.find_last_not_of(" ");
-        
-        if (start != string::npos && end != string::npos) {
-            skill = skill.substr(start, end - start + 1);
-            
-            // Resume skills met job requirement, then find weight score in keywordlist
-            if (!skill.empty() && jobRequirement.find(skill) != string::npos) {
-                weightNode* keywordsPtr = keywordList.getHead();
-                int weightScore = 0;
-                
-                while (keywordsPtr) {
-                    keyword = keywordsPtr->keywords;
-                    weightScore = keywordsPtr->weightScore;
-
-                    if (skill == keyword) {
-                        matchScore += weightScore;
-                    }
-
-                    keywordsPtr = keywordsPtr->nextAddress;
-                }
-            }
-        }
-    }
-    return matchScore;
+    return score;
 }
 
 bool booleanMatching(const string& requirements, const string& requiredSkills) {
@@ -465,10 +422,9 @@ int displayMenu() {
     cout << "5. Search for jobs" << endl;
     cout << "6. Search for resumes" << endl;
     cout << "7. Show all keywords" << endl;
-    cout << "8. Add new keyword" << endl;
-    cout << "9. Show invalid resumes" << endl;
-    cout << "10. Show memory usage" << endl;
-    cout << "11. Exit" << endl;
+    cout << "8. Show invalid resumes" << endl;
+    cout << "9. Show memory usage" << endl;
+    cout << "10. Exit" << endl;
     cout << "= = = = = = = = = = = = = = = = = = = = = = = = = = = = =" << endl;
     cout << "Enter your choice: ";
     cin >> choice;
@@ -476,8 +432,8 @@ int displayMenu() {
     return choice;
 }
 
-void topTenMatchedJobs(resumeLinkedList& resumesFiltered, jobLinkedList& jobsFiltered, keywordLinkedList& keywordList, resumeLinkedList& wrongResumeList, bool showBest = true) {
-    
+void topTenMatchedJobs(resumeLinkedList& resumesFiltered, jobLinkedList& jobsFiltered, resumeLinkedList& wrongResumeList, const int keywordScores[], bool showBest = true) {
+   
     // Create linkedList to store results
     MatchResultLinkedList matchResults;;
 
@@ -488,16 +444,16 @@ void topTenMatchedJobs(resumeLinkedList& resumesFiltered, jobLinkedList& jobsFil
     jobNode* jobPtr = jobsFiltered.getHead();
     while (jobPtr != nullptr) {
         // Get full marks of job requirements
-        int jobScore = calcWeightScore(jobPtr->requirements, keywordList); 
+        float jobMaxScore = jobPtr->totalWeightScore; 
         float totalScore = 0;
 
         // Loop every resumes
         resumeNode* resumePtr = resumesFiltered.getHead();
         while (resumePtr) {
             // Calc resume get how many marks
-            float skillScore = skillMatching(resumePtr->skills, jobPtr->requirements, keywordList);
+            float skillScore = calcMatchScore(resumePtr->keywordID, resumePtr->keywordCount, jobPtr->keywordID, jobPtr->keywordCount, keywordScores);
             // If resume fulfill all, get 1 mark
-            totalScore += (skillScore/jobScore);
+            totalScore += (skillScore/jobMaxScore);
             
             resumePtr = resumePtr->nextAddress;
         }
@@ -509,12 +465,7 @@ void topTenMatchedJobs(resumeLinkedList& resumesFiltered, jobLinkedList& jobsFil
     
     matchResults.sort(showBest);
     
-    if (showBest) {
-        cout << endl << " - - - - Top 10 Best Matched Jobs - - - - -" << endl;
-    } 
-    else {
-        cout << endl << " - - - - Top 10 Worst Matched Jobs - - - - -" << endl;
-    }
+    cout << endl << " - - - - Top 10 " << (showBest ? "Best" : "Worst") << " Matched Jobs - - - - -" << endl;
     
     // Display top 10 results
     MatchNode* matchPtr = matchResults.getHead();
@@ -532,7 +483,7 @@ void topTenMatchedJobs(resumeLinkedList& resumesFiltered, jobLinkedList& jobsFil
     }
 }
 
-void resumeAssist(resumeLinkedList& resumesFiltered, jobLinkedList& jobsFiltered, keywordLinkedList& keywordList) {
+void resumeAssist(resumeLinkedList& resumesFiltered, jobLinkedList& jobsFiltered, const int keywordScores[]) {
     int resumeID;
     cout << endl << "Please provide your resume id: ";
     cin >> resumeID;
@@ -552,9 +503,9 @@ void resumeAssist(resumeLinkedList& resumesFiltered, jobLinkedList& jobsFiltered
     
     jobNode* jobPtr = jobsFiltered.getHead();
     while (jobPtr) {
-        int jobMaxScore = calcWeightScore(jobPtr->requirements, keywordList);
-        int skillScore = skillMatching(targetResume->skills, jobPtr->requirements, keywordList);
-        
+        int jobMaxScore = jobPtr->totalWeightScore;
+        int skillScore = calcMatchScore(targetResume->keywordID, targetResume->keywordCount, jobPtr->keywordID, jobPtr->keywordCount, keywordScores);
+            
         // Only save perfect match
         if (skillScore == jobMaxScore) {
             matchResults.insertAtEnd(jobPtr->jobID, skillScore, jobPtr->requirements);
@@ -585,9 +536,9 @@ void resumeAssist(resumeLinkedList& resumesFiltered, jobLinkedList& jobsFiltered
         // Loop again 
         jobPtr = jobsFiltered.getHead();
         while (jobPtr && (matchCount + partialCount) < 11) {
-            int jobMaxScore = calcWeightScore(jobPtr->requirements, keywordList); 
-            int skillScore = skillMatching(targetResume->skills, jobPtr->requirements, keywordList);
-
+            int jobMaxScore = jobPtr->totalWeightScore;
+            int skillScore = calcMatchScore(targetResume->keywordID, targetResume->keywordCount, jobPtr->keywordID, jobPtr->keywordCount, keywordScores);
+        
             if (skillScore != jobMaxScore && skillScore > 0) {
                 cout << "[" << matchCount + partialCount << "] Job ID: " << jobPtr->jobID << " | Score: " << skillScore << " / " << jobMaxScore << endl;
                 cout << "    " << jobPtr->requirements << endl << endl;
@@ -599,7 +550,7 @@ void resumeAssist(resumeLinkedList& resumesFiltered, jobLinkedList& jobsFiltered
     }
 }
 
-void jobAssist(resumeLinkedList& resumesFiltered, jobLinkedList& jobsFiltered, keywordLinkedList& keywordList) {
+void jobAssist(resumeLinkedList& resumesFiltered, jobLinkedList& jobsFiltered, const int keywordScores[]) {
     int jobID;
     cout << endl << "Please provide your job id: ";
     cin >> jobID;
@@ -618,11 +569,16 @@ void jobAssist(resumeLinkedList& resumesFiltered, jobLinkedList& jobsFiltered, k
     MatchResultLinkedList matchResults;
 
     // Get job max score first
-    int jobMaxScore = calcWeightScore(targetJob->requirements, keywordList);
+    int jobMaxScore = targetJob->totalWeightScore;
+    
+    if (jobMaxScore == 0) {
+        cout << "This job has no valid requirements." << endl;
+        return;
+    }
     
     resumeNode* resumePtr = resumesFiltered.getHead();
     while (resumePtr) {
-        int skillScore = skillMatching(resumePtr->skills, targetJob->requirements, keywordList);
+        int skillScore = calcMatchScore(resumePtr->keywordID, resumePtr->keywordCount, targetJob->keywordID, targetJob->keywordCount, keywordScores);
         
         // Only save perfect match
         if (skillScore == jobMaxScore) {
@@ -651,11 +607,11 @@ void jobAssist(resumeLinkedList& resumesFiltered, jobLinkedList& jobsFiltered, k
 
         cout << " - - - - - - - - - Showing Partial Match - - - - - - - - - -" << endl; 
         
-        // Loop again 
+        //Loop again 
         resumePtr = resumesFiltered.getHead();
         while (resumePtr && (matchCount + partialCount) < 11) { 
-            int skillScore = skillMatching(resumePtr->skills, targetJob->requirements, keywordList);
-
+            int skillScore = calcMatchScore(resumePtr->keywordID, resumePtr->keywordCount, targetJob->keywordID, targetJob->keywordCount, keywordScores);
+        
             if (skillScore != jobMaxScore && skillScore > 0) {
                 cout << "[" << partialCount << "] Resume ID: " << resumePtr->resumeID << " | Score: " << skillScore << " / " << jobMaxScore << endl;
                 cout << "    " << resumePtr->skills << endl << endl;
@@ -682,41 +638,51 @@ int main() {
 
     auto startLoad = high_resolution_clock::now();
 
-    loadKeywordsFromFile(keywordsList, keywordFile);
+    // Create an array to hold keyword scores for fast lookup by index.
+    int keywordScores[MAX_KEYWORDS] = {0};
+    int numberOfKeywords = 0;
+
+    loadKeywordsFromFile(keywordsList, keywordFile, numberOfKeywords);
+
+    weightNode* keywordPtr = keywordsList.getHead();
+
+    // Load keyword linkedlist, get weightScore save into array
+    while(keywordPtr) {
+        if(keywordPtr->index < MAX_KEYWORDS) {
+            keywordScores[keywordPtr->index] = keywordPtr->weightScore;
+        }
+        keywordPtr = keywordPtr->nextAddress;
+    }
+
     filterResumeData(resumeFile, resumesFiltered, keywordsList, wrongResumeList);
-    filterJobData(jobFile, jobsFiltered);
-    cout << "After filtering, total " << resumesFiltered.getSize() << " resumes and " << jobsFiltered.getSize() << " jobs successfully passed." << endl;
+    filterJobData(jobFile, jobsFiltered, keywordsList);
+    cout << "After filtering, total " << resumesFiltered.getSize() << " valid resumes and " << jobsFiltered.getSize() << " valid jobs." << endl;
 
     auto endLoad = high_resolution_clock::now();
     auto durationLoad = duration_cast<milliseconds>(endLoad - startLoad).count();
 
-    cout << "Data loading completed in " << durationLoad << " ms" << endl;
+    cout << "Data loading and pre-processing completed in " << durationLoad << " ms" << endl;
 
     int choice = 0;
     do {
         choice = displayMenu();
+        auto startOperation = high_resolution_clock::now();
 
         switch(choice) {
             case 1: {
-                auto startMatch = high_resolution_clock::now();
-                topTenMatchedJobs(resumesFiltered, jobsFiltered, keywordsList, wrongResumeList, true);
-                
-                auto endMatch = high_resolution_clock::now();
-                auto durationMatch = duration_cast<milliseconds>(endMatch - startMatch).count();
-                cout << "Matching completed in " << durationMatch << " ms" << endl;
-
+                topTenMatchedJobs(resumesFiltered, jobsFiltered, wrongResumeList, keywordScores, true);
                 break;
             }
             case 2:
-                topTenMatchedJobs(resumesFiltered, jobsFiltered, keywordsList, wrongResumeList, false);
+                topTenMatchedJobs(resumesFiltered, jobsFiltered, wrongResumeList, keywordScores, false);
                 break;
                 
             case 3:
-                resumeAssist(resumesFiltered, jobsFiltered, keywordsList);
+                resumeAssist(resumesFiltered, jobsFiltered, keywordScores);
                 break;
                 
             case 4:
-                jobAssist(resumesFiltered, jobsFiltered, keywordsList);
+                jobAssist(resumesFiltered, jobsFiltered, keywordScores);
                 break;
                 
             case 5:
@@ -733,46 +699,41 @@ int main() {
                 break;
 
             case 8:
-                addNewKeyword(keywordsList, keywordFile);
-                resumesFiltered.clear();
-                wrongResumeList.clear();
-                filterResumeData(resumeFile, resumesFiltered, keywordsList, wrongResumeList);
-                break;
-
-            case 9:
                 cout << endl << " - - - - - - - - - - - Invalid Resumes - - - - - - - - - - - - - -" << endl;
                 wrongResumeList.show();
                 break;
 
-            case 10: {
-                size_t jobMemoryBytes = jobsFiltered.getTotalMemoryUsage();
-                double jobMemoryKB = static_cast<double>(jobMemoryBytes) / 1024.0;
-                cout << endl << "Job_Description Linked List usage: " << jobMemoryKB << " KB" << std::endl;
+            case 9: {
+                cout << endl << "- - - - - - - Memory Usage - - - - - - - -" << endl;
 
-                size_t resumeMemoryBytes = resumesFiltered.getTotalMemoryUsage();
-                double resumeMemoryKB = static_cast<double>(resumeMemoryBytes) / 1024.0;
-                cout << "Resume Linked List usage: " << resumeMemoryKB << " KB" << std::endl;
+                cout << "Job_Description List: " << fixed << setprecision(2) << jobsFiltered.getTotalMemoryUsage() / 1024.0 << " KB" << endl;
 
-                size_t wresumeMemoryBytes = wrongResumeList.getTotalMemoryUsage();
-                double wresumeMemoryKB = static_cast<double>(wresumeMemoryBytes) / 1024.0;
-                cout << "WrongResume Linked List usage: " << wresumeMemoryKB << " KB" << std::endl;
-
-                size_t keywordMemoryBytes = keywordsList.getTotalMemoryUsage();
-                double keywordMemoryKB = static_cast<double>(keywordMemoryBytes) / 1024.0;
-                cout << "Keyword Linked List usage: " << keywordMemoryKB << " KB" << std::endl;
-
+                cout << "Valid Resume List: " << resumesFiltered.getTotalMemoryUsage() / 1024.0 << " KB" << endl;
+                
+                cout << "Invalid Resume List: " << wrongResumeList.getTotalMemoryUsage() / 1024.0 << " KB" << endl;
+                
+                cout << "Keyword List: " << keywordsList.getTotalMemoryUsage() / 1024.0 << " KB" << endl;
+                
                 break;
             }
-            case 11:
+            case 10:
                 cout << "Exiting program." << endl;
                 break;
                 
             default:
-                cout << endl << "Invalid choice! Please enter 1-11." << endl;
+                cout << endl << "Invalid choice! Please enter 1-10." << endl;
                 break;
         }
+
+        // Only print execution time for the main matching functions
+        if (choice > 0 && choice < 5) {
+             auto endOperation = high_resolution_clock::now();
+             auto duration = duration_cast<milliseconds>(endOperation - startOperation).count();
+
+             cout << "Operation completed in " << duration << " ms" << endl;
+        }
         
-    } while(choice != 11);
+    } while(choice != 10);
 
     return 0;
 }
